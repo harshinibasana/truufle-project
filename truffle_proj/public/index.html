@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Blockchain Calculator</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; }
+    input, button { margin: 8px; padding: 8px; font-size: 16px; }
+    h2 { color: #333; }
+  </style>
+</head>
+<body>
+  <h2>Blockchain Calculator (Calcu.sol)</h2>
+
+  <!-- Two number input fields -->
+  <input id="num1" type="number" placeholder="Enter number 1" />
+  <input id="num2" type="number" placeholder="Enter number 2" />
+
+  <!-- Buttons -->
+  <div>
+    <button onclick="operate('add')">Add</button>
+    <button onclick="operate('sub')">Subtract</button>
+    <button onclick="operate('multi')">Multiply</button>
+    <button onclick="operate('divi')">Divide</button>
+    <button onclick="reset()">Reset</button>
+  </div>
+
+  <h3>Result: <span id="res">0</span></h3>
+  <p id="status"></p>
+
+  <script>
+    async function operate(op) {
+      const n1 = parseInt(document.getElementById("num1").value);
+      const n2 = parseInt(document.getElementById("num2").value);
+      const status = document.getElementById("status");
+      const resBox = document.getElementById("res");
+
+      if (isNaN(n1) || isNaN(n2)) {
+        status.textContent = "Please enter two valid numbers.";
+        return;
+      }
+
+      try {
+        const response = await fetch("/operate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op, val1: n1, val2: n2 })
+        });
+
+        const data = await response.json();
+
+        if(data.error){
+          status.textContent = "Error: " + data.error;
+          return;
+        }
+
+        resBox.textContent = data.result;
+
+        const symbolMap = {
+          add: "+",
+          sub: "-",
+          multi: "×",
+          divi: "÷"
+        };
+
+        status.textContent = `${n1} ${symbolMap[op]} ${n2} = ${data.result}`;
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+      }
+    }
+
+    async function reset() {
+      const resBox = document.getElementById("res");
+      const status = document.getElementById("status");
+
+      try {
+        const response = await fetch("/operate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ op: "reset", val1: 0, val2: 0 })
+        });
+
+        const data = await response.json();
+        if(data.error){
+          status.textContent = "Error: " + data.error;
+          return;
+        }
+
+        resBox.textContent = data.result;
+        status.textContent = "Calculator reset.";
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+      }
+    }
+
+    // Optionally, load initial result on page load
+    window.onload = async () => {
+      try {
+        const response = await fetch("/result");
+        const data = await response.json();
+        if(data.result !== undefined) {
+          document.getElementById("res").textContent = data.result;
+        }
+      } catch {
+        // ignore errors on load
+      }
+    };
+  </script>
+</body>
+</html>
